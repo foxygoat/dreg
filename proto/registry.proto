@@ -1,0 +1,57 @@
+// Docker registry
+// https://docs.docker.com/registry/spec/api/
+
+syntax = "proto3";
+
+option go_package = "foxygo.at/dreg/dockerpb";
+
+import "google/api/annotations.proto";
+
+// All http requests need the header
+//   Accept: application/vnd.docker.distribution.manifest.v2+json
+service Registry {
+  // https://docs.docker.com/registry/spec/api/#api-version-check
+  rpc CheckV2 (CheckV2Request) returns (CheckV2Response) {
+    option (google.api.http) = { get: "/v2/" };
+  };
+
+  // https://docs.docker.com/registry/spec/api/#listing-repositories
+  rpc ListRepositories (ListRepositoriesRequest) returns (ListRepositoriesResponse) {
+    option (google.api.http) = { get: "/v2/_catalog" };
+  };
+
+  // https://docs.docker.com/registry/spec/api/#listing-image-tags
+  rpc ListImageTags (ListImageTagsRequest) returns (ListImageTagsResponse) {
+    option (google.api.http) = { get: "/v2/{name=**}/tags/list" };
+  };
+
+  // https://docs.docker.com/registry/spec/api/#deleting-an-image
+  rpc DeleteImage (DeleteImageRequest) returns (DeleteImageResponse) {
+    option (google.api.http) = { delete: "/v2/{name=**}/manifests/{reference}" };
+    // Returns 202 on success
+  }
+}
+
+message CheckV2Request {}
+message CheckV2Response {}
+
+message ListRepositoriesRequest {}
+message ListRepositoriesResponse {
+  repeated string repositories = 1;
+}
+
+message ListImageTagsRequest {
+  string name = 1;
+}
+
+message ListImageTagsResponse {
+  string name = 1;
+  repeated string tags = 2;
+}
+
+message DeleteImageRequest {
+  string name = 1;
+  string reference = 2;
+}
+
+message DeleteImageResponse {}
