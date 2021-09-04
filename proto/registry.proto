@@ -2,8 +2,9 @@
 // https://docs.docker.com/registry/spec/api/
 
 syntax = "proto3";
+package foxygoat.dreg;
 
-option go_package = "foxygo.at/dreg/dockerpb";
+option go_package = "foxygo.at/dreg/pb";
 
 import "google/api/annotations.proto";
 

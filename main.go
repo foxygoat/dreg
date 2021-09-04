@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"foxygo.at/dreg/dockerpb"
+	"foxygo.at/dreg/pb"
 	"foxygo.at/protog/httprule"
 	"github.com/alecthomas/kong"
 )
@@ -20,7 +20,7 @@ type config struct {
 	URL     string `default:"http://localhost:5000" env:"REGISTRY" help:"URL of registry"`
 	Verbose bool   `short:"v" help:"Verbose output"`
 
-	client dockerpb.RegistryClient
+	client pb.RegistryClient
 }
 
 type check struct{}
@@ -41,7 +41,7 @@ func main() {
 }
 
 func (c *config) AfterApply() error {
-	c.client = dockerpb.NewRegistryClient(&httprule.ClientConn{
+	c.client = pb.NewRegistryClient(&httprule.ClientConn{
 		HTTPClient: &http.Client{},
 		BaseURL:    c.URL,
 	})
@@ -50,7 +50,7 @@ func (c *config) AfterApply() error {
 
 func (c *check) Run(cfg *config) error {
 	ctx := context.Background()
-	req := &dockerpb.CheckV2Request{}
+	req := &pb.CheckV2Request{}
 	if _, err := cfg.client.CheckV2(ctx, req); err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func (c *check) Run(cfg *config) error {
 
 func (l *list) Run(cfg *config) error {
 	ctx := context.Background()
-	req := &dockerpb.ListRepositoriesRequest{}
+	req := &pb.ListRepositoriesRequest{}
 	if len(l.Repositories) == 0 {
 		resp, err := cfg.client.ListRepositories(ctx, req)
 		if err != nil {
@@ -71,7 +71,7 @@ func (l *list) Run(cfg *config) error {
 	}
 
 	for _, name := range l.Repositories {
-		req := &dockerpb.ListImageTagsRequest{Name: name}
+		req := &pb.ListImageTagsRequest{Name: name}
 		resp, err := cfg.client.ListImageTags(ctx, req)
 		if err != nil {
 			return err
@@ -91,13 +91,13 @@ func (r *rm) Run(cfg *config) error {
 			image += ":latest"
 		}
 		parts := strings.SplitN(image, ":", 2)
-		req := &dockerpb.GetDigestRequest{Name: parts[0], Reference: parts[1]}
+		req := &pb.GetDigestRequest{Name: parts[0], Reference: parts[1]}
 		resp, err := cfg.client.GetDigest(ctx, req)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't find %s: %v\n", image, err)
 			continue
 		}
-		delReq := &dockerpb.DeleteImageRequest{Name: parts[0], Reference: resp.Digest}
+		delReq := &pb.DeleteImageRequest{Name: parts[0], Reference: resp.Digest}
 		_, err = cfg.client.DeleteImage(ctx, delReq)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't remove %s: %v\n", image, err)
