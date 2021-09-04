@@ -42,7 +42,7 @@ func NewRegistryClient(cc grpc.ClientConnInterface) RegistryClient {
 
 func (c *registryClient) CheckV2(ctx context.Context, in *CheckV2Request, opts ...grpc.CallOption) (*CheckV2Response, error) {
 	out := new(CheckV2Response)
-	err := c.cc.Invoke(ctx, "/Registry/CheckV2", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/CheckV2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *registryClient) CheckV2(ctx context.Context, in *CheckV2Request, opts .
 
 func (c *registryClient) ListRepositories(ctx context.Context, in *ListRepositoriesRequest, opts ...grpc.CallOption) (*ListRepositoriesResponse, error) {
 	out := new(ListRepositoriesResponse)
-	err := c.cc.Invoke(ctx, "/Registry/ListRepositories", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/ListRepositories", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *registryClient) ListRepositories(ctx context.Context, in *ListRepositor
 
 func (c *registryClient) ListImageTags(ctx context.Context, in *ListImageTagsRequest, opts ...grpc.CallOption) (*ListImageTagsResponse, error) {
 	out := new(ListImageTagsResponse)
-	err := c.cc.Invoke(ctx, "/Registry/ListImageTags", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/ListImageTags", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (c *registryClient) ListImageTags(ctx context.Context, in *ListImageTagsReq
 
 func (c *registryClient) GetDigest(ctx context.Context, in *GetDigestRequest, opts ...grpc.CallOption) (*GetDigestResponse, error) {
 	out := new(GetDigestResponse)
-	err := c.cc.Invoke(ctx, "/Registry/GetDigest", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/GetDigest", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (c *registryClient) GetDigest(ctx context.Context, in *GetDigestRequest, op
 
 func (c *registryClient) DeleteImage(ctx context.Context, in *DeleteImageRequest, opts ...grpc.CallOption) (*DeleteImageResponse, error) {
 	out := new(DeleteImageResponse)
-	err := c.cc.Invoke(ctx, "/Registry/DeleteImage", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/DeleteImage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func _Registry_CheckV2_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Registry/CheckV2",
+		FullMethod: "/foxygoat.dreg.Registry/CheckV2",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).CheckV2(ctx, req.(*CheckV2Request))
@@ -163,7 +163,7 @@ func _Registry_ListRepositories_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Registry/ListRepositories",
+		FullMethod: "/foxygoat.dreg.Registry/ListRepositories",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).ListRepositories(ctx, req.(*ListRepositoriesRequest))
@@ -181,7 +181,7 @@ func _Registry_ListImageTags_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Registry/ListImageTags",
+		FullMethod: "/foxygoat.dreg.Registry/ListImageTags",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).ListImageTags(ctx, req.(*ListImageTagsRequest))
@@ -199,7 +199,7 @@ func _Registry_GetDigest_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Registry/GetDigest",
+		FullMethod: "/foxygoat.dreg.Registry/GetDigest",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).GetDigest(ctx, req.(*GetDigestRequest))
@@ -217,7 +217,7 @@ func _Registry_DeleteImage_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/Registry/DeleteImage",
+		FullMethod: "/foxygoat.dreg.Registry/DeleteImage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RegistryServer).DeleteImage(ctx, req.(*DeleteImageRequest))
@@ -229,7 +229,7 @@ func _Registry_DeleteImage_Handler(srv interface{}, ctx context.Context, dec fun
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Registry_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "Registry",
+	ServiceName: "foxygoat.dreg.Registry",
 	HandlerType: (*RegistryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
