@@ -58,15 +58,16 @@ lint:  ## Lint go source code
 
 # --- Protos ---------------------------------------------------------------------
 
-protos:  ## Generate Go pb and grpc binding for .proto files
+proto:  ## Generate Go pb and grpc binding for .proto files
+	$(eval GO_MODULE := $(shell go list -m))
 	protoc \
 		-I proto -I proto/vendor \
-		--go_out=. --go_opt=module=$(shell go list -m) \
-		--go-grpc_out=. --go-grpc_opt=module=$(shell go list -m) \
-		$(shell find proto -name vendor -prune -o -name '*.proto' -print)
+		--go_out=. --go_opt=module=$(GO_MODULE) \
+		--go-grpc_out=. --go-grpc_opt=module=$(GO_MODULE) \
+		$(shell find proto -name vendor -prune -o -regex '.*/[^_].*\.proto' -print)
 	goimports -w .
 
-.PHONY: protos
+.PHONY: proto
 
 # --- Release -------------------------------------------------------------------
 NEXTTAG := $(shell { git tag --list --merged HEAD --sort=-v:refname; echo v0.0.0; } | grep -E "^v?[0-9]+.[0-9]+.[0-9]+$$" | head -n1 | awk -F . '{ print $$1 "." $$2 "." $$3 + 1 }')
