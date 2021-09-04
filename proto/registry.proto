@@ -3,7 +3,7 @@
 
 syntax = "proto3";
 
-option go_package = "foxygo.at/dreg/dockerpb";
+option go_package = "foxygo.at/dreg/pb";
 
 import "google/api/annotations.proto";
 
