@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"foxygo.at/dreg/pb"
 	"foxygo.at/protog/httprule"
 	"github.com/alecthomas/kong"
+	"github.com/dustin/go-humanize"
 )
 
 type config struct {
@@ -70,6 +72,9 @@ func (l *list) Run(cfg *config) error {
 		l.Repositories = resp.Repositories
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "REPOSITORY\tTAG\tSIZE")
+
 	for _, name := range l.Repositories {
 		req := &pb.ListImageTagsRequest{Name: name}
 		resp, err := cfg.client.ListImageTags(ctx, req)
@@ -77,9 +82,21 @@ func (l *list) Run(cfg *config) error {
 			return err
 		}
 		for _, tag := range resp.Tags {
-			fmt.Printf("%s:%s\n", resp.Name, tag)
+			req := &pb.GetManifestRequest{Name: name, Reference: tag}
+			resp, err := cfg.client.GetManifest(ctx, req)
+			if err != nil {
+				return err
+			}
+			var size uint64
+			for _, layer := range resp.Manifest.Layers {
+				size += layer.Size
+			}
+			fields := []string{name, tag, humanize.Bytes(size) + " (compressed)"}
+			line := strings.Join(fields, "\t")
+			fmt.Fprintln(w, line)
 		}
 	}
+	w.Flush()
 	return nil
 }
 
