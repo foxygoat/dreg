@@ -25,6 +25,9 @@ type RegistryClient interface {
 	ListRepositories(ctx context.Context, in *ListRepositoriesRequest, opts ...grpc.CallOption) (*ListRepositoriesResponse, error)
 	// https://docs.docker.com/registry/spec/api/#listing-image-tags
 	ListImageTags(ctx context.Context, in *ListImageTagsRequest, opts ...grpc.CallOption) (*ListImageTagsResponse, error)
+	// https://docs.docker.com/registry/spec/api/#manifest
+	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+	GetDigest(ctx context.Context, in *GetDigestRequest, opts ...grpc.CallOption) (*GetDigestResponse, error)
 	// https://docs.docker.com/registry/spec/api/#deleting-an-image
 	DeleteImage(ctx context.Context, in *DeleteImageRequest, opts ...grpc.CallOption) (*DeleteImageResponse, error)
 }
@@ -64,6 +67,15 @@ func (c *registryClient) ListImageTags(ctx context.Context, in *ListImageTagsReq
 	return out, nil
 }
 
+func (c *registryClient) GetDigest(ctx context.Context, in *GetDigestRequest, opts ...grpc.CallOption) (*GetDigestResponse, error) {
+	out := new(GetDigestResponse)
+	err := c.cc.Invoke(ctx, "/Registry/GetDigest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *registryClient) DeleteImage(ctx context.Context, in *DeleteImageRequest, opts ...grpc.CallOption) (*DeleteImageResponse, error) {
 	out := new(DeleteImageResponse)
 	err := c.cc.Invoke(ctx, "/Registry/DeleteImage", in, out, opts...)
@@ -83,6 +95,9 @@ type RegistryServer interface {
 	ListRepositories(context.Context, *ListRepositoriesRequest) (*ListRepositoriesResponse, error)
 	// https://docs.docker.com/registry/spec/api/#listing-image-tags
 	ListImageTags(context.Context, *ListImageTagsRequest) (*ListImageTagsResponse, error)
+	// https://docs.docker.com/registry/spec/api/#manifest
+	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+	GetDigest(context.Context, *GetDigestRequest) (*GetDigestResponse, error)
 	// https://docs.docker.com/registry/spec/api/#deleting-an-image
 	DeleteImage(context.Context, *DeleteImageRequest) (*DeleteImageResponse, error)
 	mustEmbedUnimplementedRegistryServer()
@@ -100,6 +115,9 @@ func (UnimplementedRegistryServer) ListRepositories(context.Context, *ListReposi
 }
 func (UnimplementedRegistryServer) ListImageTags(context.Context, *ListImageTagsRequest) (*ListImageTagsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListImageTags not implemented")
+}
+func (UnimplementedRegistryServer) GetDigest(context.Context, *GetDigestRequest) (*GetDigestResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDigest not implemented")
 }
 func (UnimplementedRegistryServer) DeleteImage(context.Context, *DeleteImageRequest) (*DeleteImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteImage not implemented")
@@ -171,6 +189,24 @@ func _Registry_ListImageTags_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Registry_GetDigest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDigestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).GetDigest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Registry/GetDigest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).GetDigest(ctx, req.(*GetDigestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Registry_DeleteImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteImageRequest)
 	if err := dec(in); err != nil {
@@ -207,6 +243,10 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListImageTags",
 			Handler:    _Registry_ListImageTags_Handler,
+		},
+		{
+			MethodName: "GetDigest",
+			Handler:    _Registry_GetDigest_Handler,
 		},
 		{
 			MethodName: "DeleteImage",
