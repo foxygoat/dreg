@@ -7,8 +7,6 @@ option go_package = "foxygo.at/dreg/dockerpb";
 
 import "google/api/annotations.proto";
 
-// All http requests need the header
-//   Accept: application/vnd.docker.distribution.manifest.v2+json
 service Registry {
   // https://docs.docker.com/registry/spec/api/#api-version-check
   rpc CheckV2 (CheckV2Request) returns (CheckV2Response) {
@@ -24,6 +22,18 @@ service Registry {
   rpc ListImageTags (ListImageTagsRequest) returns (ListImageTagsResponse) {
     option (google.api.http) = { get: "/v2/{name=**}/tags/list" };
   };
+
+  // https://docs.docker.com/registry/spec/api/#manifest
+  // https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+  rpc GetDigest (GetDigestRequest) returns (GetDigestResponse) {
+    option (google.api.http) = {
+      custom: { kind: "HEAD", path: "/v2/{name=**}/manifests/{reference}" },
+      additional_bindings: [
+        { custom: { kind: "header", path: "Accept: application/vnd.docker.distribution.manifest.v2+json" } },
+        { custom: { kind: "response_header", path: "Docker-Content-Digest: {digest}" } }
+      ]
+    };
+  }
 
   // https://docs.docker.com/registry/spec/api/#deleting-an-image
   rpc DeleteImage (DeleteImageRequest) returns (DeleteImageResponse) {
@@ -47,6 +57,15 @@ message ListImageTagsRequest {
 message ListImageTagsResponse {
   string name = 1;
   repeated string tags = 2;
+}
+
+message GetDigestRequest {
+  string name = 1;
+  string reference = 2;
+}
+
+message GetDigestResponse {
+  string digest = 1;
 }
 
 message DeleteImageRequest {
