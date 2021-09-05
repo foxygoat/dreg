@@ -2,10 +2,11 @@
 // https://docs.docker.com/registry/spec/api/
 
 syntax = "proto3";
-package foxygoat.dreg;
 
+package foxygoat.dreg;
 option go_package = "foxygo.at/dreg/pb";
 
+import "manifest.proto";
 import "google/api/annotations.proto";
 
 service Registry {
@@ -32,6 +33,19 @@ service Registry {
       additional_bindings: [
         { custom: { kind: "header", path: "Accept: application/vnd.docker.distribution.manifest.v2+json" } },
         { custom: { kind: "response_header", path: "Docker-Content-Digest: {digest}" } }
+      ]
+    };
+  }
+
+  // https://docs.docker.com/registry/spec/api/#manifest
+  // https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+  rpc GetManifest (GetManifestRequest) returns (GetManifestResponse) {
+    option (google.api.http) = {
+      get: "/v2/{name=**}/manifests/{reference}",
+      response_body: "manifest",
+      additional_bindings: [
+        { custom: { kind: "header", path: "Accept: application/vnd.docker.distribution.manifest.v2+json" }},
+        { custom: { kind: "response_header", path: "Docker-Content-Digest: {digest}" }}
       ]
     };
   }
@@ -67,6 +81,16 @@ message GetDigestRequest {
 
 message GetDigestResponse {
   string digest = 1;
+}
+
+message GetManifestRequest {
+  string name = 1;
+  string reference = 2;
+}
+
+message GetManifestResponse {
+  string digest = 1;
+  Manifest manifest = 2;
 }
 
 message DeleteImageRequest {

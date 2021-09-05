@@ -28,6 +28,9 @@ type RegistryClient interface {
 	// https://docs.docker.com/registry/spec/api/#manifest
 	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
 	GetDigest(ctx context.Context, in *GetDigestRequest, opts ...grpc.CallOption) (*GetDigestResponse, error)
+	// https://docs.docker.com/registry/spec/api/#manifest
+	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+	GetManifest(ctx context.Context, in *GetManifestRequest, opts ...grpc.CallOption) (*GetManifestResponse, error)
 	// https://docs.docker.com/registry/spec/api/#deleting-an-image
 	DeleteImage(ctx context.Context, in *DeleteImageRequest, opts ...grpc.CallOption) (*DeleteImageResponse, error)
 }
@@ -76,6 +79,15 @@ func (c *registryClient) GetDigest(ctx context.Context, in *GetDigestRequest, op
 	return out, nil
 }
 
+func (c *registryClient) GetManifest(ctx context.Context, in *GetManifestRequest, opts ...grpc.CallOption) (*GetManifestResponse, error) {
+	out := new(GetManifestResponse)
+	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/GetManifest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *registryClient) DeleteImage(ctx context.Context, in *DeleteImageRequest, opts ...grpc.CallOption) (*DeleteImageResponse, error) {
 	out := new(DeleteImageResponse)
 	err := c.cc.Invoke(ctx, "/foxygoat.dreg.Registry/DeleteImage", in, out, opts...)
@@ -98,6 +110,9 @@ type RegistryServer interface {
 	// https://docs.docker.com/registry/spec/api/#manifest
 	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
 	GetDigest(context.Context, *GetDigestRequest) (*GetDigestResponse, error)
+	// https://docs.docker.com/registry/spec/api/#manifest
+	// https://docs.docker.com/registry/spec/manifest-v2-2/#image-manifest-field-descriptions
+	GetManifest(context.Context, *GetManifestRequest) (*GetManifestResponse, error)
 	// https://docs.docker.com/registry/spec/api/#deleting-an-image
 	DeleteImage(context.Context, *DeleteImageRequest) (*DeleteImageResponse, error)
 	mustEmbedUnimplementedRegistryServer()
@@ -118,6 +133,9 @@ func (UnimplementedRegistryServer) ListImageTags(context.Context, *ListImageTags
 }
 func (UnimplementedRegistryServer) GetDigest(context.Context, *GetDigestRequest) (*GetDigestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDigest not implemented")
+}
+func (UnimplementedRegistryServer) GetManifest(context.Context, *GetManifestRequest) (*GetManifestResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetManifest not implemented")
 }
 func (UnimplementedRegistryServer) DeleteImage(context.Context, *DeleteImageRequest) (*DeleteImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteImage not implemented")
@@ -207,6 +225,24 @@ func _Registry_GetDigest_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Registry_GetManifest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetManifestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RegistryServer).GetManifest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/foxygoat.dreg.Registry/GetManifest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RegistryServer).GetManifest(ctx, req.(*GetManifestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Registry_DeleteImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteImageRequest)
 	if err := dec(in); err != nil {
@@ -247,6 +283,10 @@ var Registry_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDigest",
 			Handler:    _Registry_GetDigest_Handler,
+		},
+		{
+			MethodName: "GetManifest",
+			Handler:    _Registry_GetManifest_Handler,
 		},
 		{
 			MethodName: "DeleteImage",
