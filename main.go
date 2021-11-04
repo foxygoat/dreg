@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"net/http"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -12,6 +14,8 @@ import (
 	"foxygo.at/protog/httprule"
 	"github.com/alecthomas/kong"
 	"github.com/dustin/go-humanize"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type config struct {
@@ -19,10 +23,12 @@ type config struct {
 	List  list  `cmd:"" help:"List images in registry"`
 	Rm    rm    `cmd:"" aliases:"rmi" help:"Remove images from registry"`
 
-	URL     string `default:"http://localhost:5000" env:"REGISTRY" help:"URL of registry"`
-	Verbose bool   `short:"v" help:"Verbose output"`
+	DockerConfig string `type:"path" default:"~/.docker/config.json" help:"Path to docker config file for auth creds"`
+	URL          string `default:"http://localhost:5000" env:"REGISTRY" help:"URL of registry"`
+	Verbose      bool   `short:"v" help:"Verbose output"`
 
 	client pb.RegistryClient
+	dcfg   dockerConfig
 }
 
 type check struct{}
@@ -35,19 +41,73 @@ type rm struct {
 	Images []string `arg:"" name:"image" help:"Images to delete from registry"`
 }
 
+// dockerConfig matches the structure of the docker config.json file, with just
+// the elements we are interested in.
+type dockerConfig struct {
+	Auths map[string]struct{ Auth string }
+}
+
 func main() {
 	c := config{}
-	kctx := kong.Parse(&c)
-	err := kctx.Run(&c)
-	kctx.FatalIfErrorf(err)
+	if err := kong.Parse(&c).Run(&c); err != nil {
+		handleError(err)
+	}
+}
+
+func handleError(err error) {
+	st, ok := status.FromError(err)
+	if !ok {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	switch st.Code() {
+	case codes.Unauthenticated, codes.PermissionDenied:
+		fmt.Fprintln(os.Stderr, "Unauthenticated. Login with 'docker login'")
+	default:
+		fmt.Fprintln(os.Stderr, err)
+	}
 }
 
 func (c *config) AfterApply() error {
-	c.client = pb.NewRegistryClient(&httprule.ClientConn{
-		HTTPClient: &http.Client{},
-		BaseURL:    c.URL,
-	})
+	// Read docker config for auth tokens. Ignore errors - the file is optional
+	if f, err := os.Open(c.DockerConfig); err == nil {
+		_ = json.NewDecoder(f).Decode(&c.dcfg)
+		f.Close()
+	}
+
+	opts := []httprule.Option{}
+	if opt := authOpt(c.dcfg, c.URL); opt != nil {
+		opts = append(opts, opt)
+	}
+
+	cc := httprule.NewClientConn(c.URL, opts...)
+	c.client = pb.NewRegistryClient(cc)
+
 	return nil
+}
+
+func authOpt(dcfg dockerConfig, regURL string) httprule.Option {
+	u, err := url.Parse(regURL)
+	if err != nil {
+		return nil
+	}
+	// Only use auth on insecure http if localhost (loopback)
+	if u.Scheme == "http" {
+		ips, err := net.LookupIP(u.Host)
+		if err != nil {
+			return nil
+		}
+		for _, ip := range ips {
+			if !ip.IsLoopback() {
+				return nil
+			}
+		}
+	}
+	token, ok := dcfg.Auths[u.Host]
+	if !ok {
+		return nil
+	}
+	return httprule.WithHeader("Authorization", "Basic "+token.Auth)
 }
 
 func (c *check) Run(cfg *config) error {
