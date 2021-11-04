@@ -24,6 +24,7 @@ type config struct {
 	Check check `cmd:"" help:"Check that registry supports V2 API"`
 	List  list  `cmd:"" help:"List images in registry"`
 	Rm    rm    `cmd:"" aliases:"rmi" help:"Remove images from registry"`
+	Repos repos `cmd:"" help:"List repositories in registry"`
 
 	DockerConfig string `type:"path" default:"~/.docker/config.json" help:"Path to docker config file for auth creds"`
 	URL          string `default:"http://localhost:5000" env:"REGISTRY" help:"URL of registry"`
@@ -34,6 +35,8 @@ type config struct {
 }
 
 type check struct{}
+
+type repos struct{}
 
 type list struct {
 	Repositories []string `arg:"" optional:"" name:"repository" help:"Repositories to list"`
@@ -208,6 +211,20 @@ func (r *rm) Run(cfg *config) error {
 
 	if n != len(r.Images) {
 		return fmt.Errorf("%d image(s) not removed", len(r.Images)-n)
+	}
+	return nil
+}
+
+func (r *repos) Run(cfg *config) error {
+	ctx := context.Background()
+	req := &pb.ListRepositoriesRequest{}
+	resp, err := cfg.client.ListRepositories(ctx, req)
+	if err != nil {
+		return err
+	}
+	sort.Strings(resp.Repositories)
+	for _, repo := range resp.Repositories {
+		fmt.Println(repo)
 	}
 	return nil
 }
