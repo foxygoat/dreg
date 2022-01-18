@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -22,6 +24,7 @@ type config struct {
 	Check check `cmd:"" help:"Check that registry supports V2 API"`
 	List  list  `cmd:"" help:"List images in registry"`
 	Rm    rm    `cmd:"" aliases:"rmi" help:"Remove images from registry"`
+	Repos repos `cmd:"" help:"List repositories in registry"`
 
 	DockerConfig string `type:"path" default:"~/.docker/config.json" help:"Path to docker config file for auth creds"`
 	URL          string `default:"http://localhost:5000" env:"REGISTRY" help:"URL of registry"`
@@ -33,8 +36,12 @@ type config struct {
 
 type check struct{}
 
+type repos struct{}
+
 type list struct {
 	Repositories []string `arg:"" optional:"" name:"repository" help:"Repositories to list"`
+	Sizes        bool     `short:"s" help:"Show image sizes (slow)"`
+	Table        bool     `help:"Show output as a table"`
 }
 
 type rm struct {
@@ -121,19 +128,32 @@ func (c *check) Run(cfg *config) error {
 	return nil
 }
 
+// list.Run executes the list cli subcommand, listing the images in a registry.
 func (l *list) Run(cfg *config) error {
 	ctx := context.Background()
-	req := &pb.ListRepositoriesRequest{}
 	if len(l.Repositories) == 0 {
+		req := &pb.ListRepositoriesRequest{}
 		resp, err := cfg.client.ListRepositories(ctx, req)
 		if err != nil {
 			return err
 		}
 		l.Repositories = resp.Repositories
+		sort.Strings(l.Repositories)
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, "REPOSITORY\tTAG\tSIZE")
+	sep := ':'
+	var w io.Writer = os.Stdout
+	if l.Table {
+		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+		defer tw.Flush()
+		w = tw
+		heading := "REPOSITORY\tTAG"
+		if l.Sizes {
+			heading += "\tSIZE"
+		}
+		fmt.Fprintln(w, heading)
+		sep = '\t'
+	}
 
 	for _, name := range l.Repositories {
 		req := &pb.ListImageTagsRequest{Name: name}
@@ -141,7 +161,13 @@ func (l *list) Run(cfg *config) error {
 		if err != nil {
 			return err
 		}
+
+		sort.Strings(resp.Tags)
 		for _, tag := range resp.Tags {
+			if !l.Sizes {
+				fmt.Fprintf(w, "%s%c%s\n", name, sep, tag)
+				continue
+			}
 			req := &pb.GetManifestRequest{Name: name, Reference: tag}
 			resp, err := cfg.client.GetManifest(ctx, req)
 			if err != nil {
@@ -151,12 +177,9 @@ func (l *list) Run(cfg *config) error {
 			for _, layer := range resp.Manifest.Layers {
 				size += layer.Size
 			}
-			fields := []string{name, tag, humanize.Bytes(size) + " (compressed)"}
-			line := strings.Join(fields, "\t")
-			fmt.Fprintln(w, line)
+			fmt.Fprintf(w, "%s%c%s\t%s\n", name, sep, tag, humanize.Bytes(size)+" (compressed)")
 		}
 	}
-	w.Flush()
 	return nil
 }
 
@@ -188,6 +211,20 @@ func (r *rm) Run(cfg *config) error {
 
 	if n != len(r.Images) {
 		return fmt.Errorf("%d image(s) not removed", len(r.Images)-n)
+	}
+	return nil
+}
+
+func (r *repos) Run(cfg *config) error {
+	ctx := context.Background()
+	req := &pb.ListRepositoriesRequest{}
+	resp, err := cfg.client.ListRepositories(ctx, req)
+	if err != nil {
+		return err
+	}
+	sort.Strings(resp.Repositories)
+	for _, repo := range resp.Repositories {
+		fmt.Println(repo)
 	}
 	return nil
 }
